@@ -1,10 +1,9 @@
 import os
 import torch
+import sys
 from PIL import Image
-
 from diffusers import StableDiffusionPipeline, DDIMScheduler
 from diffusers.models.attention_processor import AttnProcessor2_0
-
 from transformers import CLIPVisionModelWithProjection, CLIPImageProcessor
 
 from model import ImageProjModel, StyleAttnProcessor
@@ -158,4 +157,14 @@ def inference(style_image_path, output_path="output.png"):
 
 
 if __name__ == "__main__":
-    inference("5_17081.jpg", "out_5_17081.png")
+    args = sys.argv[1:]
+
+    if len(args) == 0:
+        print("Usage: python inference.py <image_name>")
+        sys.exit(1)
+
+    input_image_name = args[0]
+    base = input_image_name.rsplit(".", 1)[0]
+    output_image_name = f"out_{base}.png"
+
+    inference(input_image_name, output_image_name)

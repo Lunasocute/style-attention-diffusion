@@ -88,7 +88,7 @@ python downloader.py
 This script downloads WikiArt images (or a subset) into the path defined in `config.py`:
 ```bash
 RAW_DATA_PATH = "data/raw_images/"
-METADATA_CSV = "data/metadata/wikiart_metadata.csv"
+METADATA_CSV = "data/metadata.csv"
 ```
 
 To customize download size, filtering, or groups (e.g., exclude Unknown Artist/Genre), adjust downloader.py or `config.py`.
@@ -104,20 +104,18 @@ python process_data.py
 
 This script performs:
 
-* GG19 style features (Gram Matrix)
-
-* CLIP-Vision content features
-
-* KMeans clustering (optional)
+* **DINOv2** style feature & **CLIP-Vision** content features
 
 * Filtering bad images
 
-* Saving `.npy` feature files or processed metadata
+* Images Group by `artist`, `genre`, `style`, then do PCA visualization for each group
+
+* Split data into test pairs and testing images
 
 Outputs are saved under:
 ```bash
-data/features/
-data/processed/
+test_data --> "./data/"
+pca_visual and style_pairs --> "./data/processed"
 ```
 
 These features are used by both the dataset loader and training pipeline.
@@ -137,13 +135,12 @@ You can modify hyperparameters and model configs in `config.py`.
 
 # 🎨 Inference
 
-Generate an image with style guidance:
+Inference will take a style reference image to generate an image with style guidance:
 
 ```bash
-python inference.py --prompt "a girl sitting in a garden"
+python inference.py {image_name}
 ```
 
-Inference can also take a style reference image (CLIP/VGG embeddings).
 
 ---
 
