@@ -56,8 +56,8 @@ def inference(style_image_path, output_path="output.png"):
     device = Config.DEVICE
 
     # Set seeds before any pipeline/latent initialization for reproducibility
-    torch.manual_seed(1234)
-    torch.cuda.manual_seed_all(1234)
+    torch.manual_seed(5118)
+    torch.cuda.manual_seed_all(5118)
 
     # 1. Load base Stable Diffusion pipeline
     pipe = StableDiffusionPipeline.from_pretrained(
@@ -73,7 +73,7 @@ def inference(style_image_path, output_path="output.png"):
     # 2. Inject and load StyleAttnProcessor weights
     load_style_attn_procs_to_unet(pipe.unet, device)
 
-    STYLE_SCALE = 0.3             # Try 0.0, 0.1, 0.3, 0.5, ...
+    STYLE_SCALE = 0.0            # Try 0.0, 0.1, 0.3, 0.5, ...
 
     for proc in pipe.unet.attn_processors.values():
         if isinstance(proc, StyleAttnProcessor):
@@ -102,7 +102,7 @@ def inference(style_image_path, output_path="output.png"):
     with torch.no_grad():
         inputs = {k: v.to(device) for k, v in inputs.items()}
         image_embeds = image_encoder(**inputs).image_embeds  # [1, 768]
-        image_embeds = torch.nn.functional.normalize(image_embeds, p=2, dim=-1)  # ⭐ 和训练对齐
+        image_embeds = torch.nn.functional.normalize(image_embeds, p=2, dim=-1)
         style_tokens = image_proj(image_embeds)  # [1, 1, 768]
 
     # 5. Manual sampling loop (using combined text + style embeddings)
@@ -117,9 +117,13 @@ def inference(style_image_path, output_path="output.png"):
     if USE_STYLE:
         # With style tokens
         combined_embeds = torch.cat([null_prompt_embeds, style_tokens], dim=1)
+        null_style = torch.zeros_like(style_tokens)
+        uncond_combined = torch.cat([null_prompt_embeds, null_style], dim=1)
     else:
         # Baseline: no style, only empty text
         combined_embeds = null_prompt_embeds
+        uncond_combined = null_prompt_embeds
+    batch_embeds = torch.cat([uncond_combined, combined_embeds], dim=0)
 
     guidance_scale = 8.0
     print("Generating with style guidance...")
@@ -128,14 +132,6 @@ def inference(style_image_path, output_path="output.png"):
             # Classifier-free guidance: [uncond, cond]
             latent_model_input = torch.cat([latents] * 2, dim=0)
             latent_model_input = pipe.scheduler.scale_model_input(latent_model_input, t)
-
-            if USE_STYLE:
-                null_style = torch.zeros_like(style_tokens)
-                uncond_combined = torch.cat([null_prompt_embeds, null_style], dim=1)
-            else:
-                uncond_combined = null_prompt_embeds
-
-            batch_embeds = torch.cat([uncond_combined, combined_embeds], dim=0)
 
             noise_pred = pipe.unet(
                 latent_model_input, t, encoder_hidden_states=batch_embeds
