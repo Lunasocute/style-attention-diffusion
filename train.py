@@ -105,15 +105,17 @@ def evaluate(unet, vae, image_proj, image_encoder, text_encoder,
         input_ids = input_ids[:1]
         bsz = style_pixels.shape[0]
 
+        gen = torch.Generator(device=device).manual_seed(1234)
+
         # --- 2. Simple DDPM sampling loop ---
-        latents = torch.randn((bsz, 4, 64, 64), device=device)
+        latents = torch.randn((bsz, 4, 64, 64), device=device, generator=gen)
         eval_scheduler = DDPMScheduler.from_config(noise_scheduler.config)
         eval_scheduler.set_timesteps(30)
 
         # Text + style tokens
         enc_text = text_encoder(input_ids)[0]                    # [B,77,768]
         image_embeds = image_encoder(style_pixels).image_embeds  # [B,768]
-        image_embeds = F.normalize(image_embeds, p=2, dim=-1)    # ⭐ 和训练保持一致
+        image_embeds = F.normalize(image_embeds, p=2, dim=-1)    
 
         style_tokens = image_proj(image_embeds)                  # [B, num_tokens, 768]
         cond = torch.cat([enc_text, style_tokens], dim=1)        # [B, 77 + num_tokens, 768]
@@ -203,7 +205,7 @@ def main():
             processor = StyleAttnProcessor(
                 hidden_size=hidden_size,
                 cross_attention_dim=unet.config.cross_attention_dim,
-                num_style_tokens=Config.NUM_STYLE_TOKENS,  # ⭐ 新增：告诉 Processor 有多少 style tokens
+                num_style_tokens=Config.NUM_STYLE_TOKENS,
                 scale=1.0,
             )
             processor.to(Config.DEVICE)
@@ -252,7 +254,7 @@ def main():
     optimizer = torch.optim.AdamW(trainable_params, lr=Config.LEARNING_RATE, betas=(0.9, 0.999), weight_decay=1e-2)
 
     num_training_steps = Config.NUM_EPOCHS * len(dataloader)
-    # num_training_steps = 10000                              #debug
+    # num_training_steps = 200                           #debug
     lr_scheduler = get_scheduler(
         name="cosine",
         optimizer=optimizer,
@@ -316,37 +318,9 @@ def main():
 
             # --- Noise prediction loss ---
             loss_mse = F.mse_loss(model_pred.float(), noise.float(), reduction="mean")
-
-            # --- Style Loss (VGG Gram) ---
-            # if global_step % STYLE_INTERVAL == 0:
-            #     idx = 0
-            #     t_single = timesteps[idx]
-            #     noisy_latent_single = noisy_latents[idx:idx+1]
-            #     pred_single = model_pred[idx:idx+1]
-
-            #     pred_latents = noise_scheduler.step(
-            #         pred_single,
-            #         t_single,
-            #         noisy_latent_single
-            #     ).prev_sample  # [1,4,64,64]
-
-            #     decoded = vae.decode(pred_latents / 0.18215).sample  # [1,3,H,W]
-            #     gen_imgs = (decoded.clamp(-1, 1) + 1) / 2.0          # [0,1]
-            #     gen_imgs = F.interpolate(gen_imgs, size=(256, 256), mode="bilinear", align_corners=False)
-
-            #     style_single = style_pixels[idx:idx+1]
-            #     style_imgs = (style_single.clamp(-1, 1) + 1) / 2.0
-            #     style_imgs = F.interpolate(style_imgs, size=(256, 256), mode="bilinear", align_corners=False)
-
-            #     style_loss = compute_style_loss(vgg, gen_imgs, style_imgs)
-            # else:
-            #     style_loss = torch.tensor(0.0, device=Config.DEVICE)
-
-            # loss = loss_mse + lambda_style * style_loss
             loss = loss_mse
             print(
                 f"Step {global_step}, loss = {loss.item():.4f}, "
-                # f"mse = {loss_mse.item():.4f}, style = {style_loss.item():.4f}"
             )
             global_step += 1
 
