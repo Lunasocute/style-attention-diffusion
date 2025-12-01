@@ -4,7 +4,7 @@ from datasets import load_dataset
 from tqdm import tqdm
 from config import Config
 
-def download_images(num_images=1000):
+def download_images(num_images=100000):
     save_dir = Config.RAW_DATA_PATH
     os.makedirs(save_dir, exist_ok=True)
 
@@ -79,4 +79,4 @@ def download_images(num_images=1000):
 
 
 if __name__ == "__main__":
-    download_images(num_images=20000)
+    download_images()

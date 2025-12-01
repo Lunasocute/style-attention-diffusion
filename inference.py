@@ -56,8 +56,8 @@ def inference(style_image_path, output_path="output.png"):
     device = Config.DEVICE
 
     # Set seeds before any pipeline/latent initialization for reproducibility
-    torch.manual_seed(5118)
-    torch.cuda.manual_seed_all(5118)
+    torch.manual_seed(3211)
+    torch.cuda.manual_seed_all(3211)
 
     # 1. Load base Stable Diffusion pipeline
     pipe = StableDiffusionPipeline.from_pretrained(
@@ -73,7 +73,7 @@ def inference(style_image_path, output_path="output.png"):
     # 2. Inject and load StyleAttnProcessor weights
     load_style_attn_procs_to_unet(pipe.unet, device)
 
-    STYLE_SCALE = 0.0            # Try 0.0, 0.1, 0.3, 0.5, ...
+    STYLE_SCALE = 0.5         # Try 0.0, 0.1, 0.3, 0.5, ...
 
     for proc in pipe.unet.attn_processors.values():
         if isinstance(proc, StyleAttnProcessor):
@@ -153,11 +153,22 @@ def inference(style_image_path, output_path="output.png"):
 
 
 if __name__ == "__main__":
+    test_dir = "test"
+    exts = (".png", ".jpg", ".jpeg", ".webp", ".bmp")
     args = sys.argv[1:]
-
+    
     if len(args) == 0:
-        print("Usage: python inference.py <image_name>")
-        sys.exit(1)
+        if not os.path.isdir(test_dir):
+            print(f"Folder '{test_dir}' not found, or pass image name in command.")
+            sys.exit(1)
+        for fname in os.listdir(test_dir):
+            if not fname.lower().endswith(exts):
+                continue
+
+            input_path = os.path.join(test_dir, fname)
+            base = fname.rsplit(".", 1)[0]
+            output_path = os.path.join(test_dir, f"out_{base}.png")
+            inference(input_path, output_path)
 
     input_image_name = args[0]
     base = input_image_name.rsplit(".", 1)[0]

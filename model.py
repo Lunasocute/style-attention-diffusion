@@ -10,8 +10,8 @@ class ImageProjModel(nn.Module):
         self.num_tokens = num_tokens
         self.cross_attention_dim = cross_attention_dim
 
-        # normalize CLIP embedding 
-        self.ln_pre = nn.LayerNorm(input_dim)
+        # normalize CLIP embedding, mean->0, variance->1
+        self.ln_pre = nn.LayerNorm(input_dim)    
 
         # Transformer MLP: Linear → GELU → Linear
         self.proj = nn.Sequential(
@@ -66,7 +66,7 @@ class StyleAttnProcessor(nn.Module):
         """
         return x.view(batch_size, -1, heads, head_dim).transpose(1, 2)
 
-    def __call__(self, attn, hidden_states, encoder_hidden_states=None):
+    def __call__(self, attn, hidden_states, encoder_hidden_states=None, attention_mask=None, temb=None):
         """
         Main attention hook that overrides CrossAttention logic.
 

@@ -9,12 +9,10 @@ class Config:
     TEST_REFS_FILE = "data/test_refs.csv"       # test reference list 
     OUTPUT_DIR = "./checkpoints"
     
-    
     # Phase 1：Data parameter
     CONTENT_SIMILARITY_THRESHOLD = 0.8
     TEST_REF_FRACTION_PER_GROUP = 0.05          # proportion for test images of each group
     MIN_IMAGES_PER_GROUP = 7                    # minimum threshold for each group
-    
     
     # Phase 2: Model parameter
     SD_MODEL_ID = "runwayml/stable-diffusion-v1-5"
@@ -26,9 +24,7 @@ class Config:
     LEARNING_RATE = 1e-4
     NUM_EPOCHS = 1
     STYLE_DROPOUT_PROB = 0.15 
-    SELF_STYLE_PROB = 0.9
-    STYLE_LOSS_WEIGHT = 0.01
-    STYLE_LOSS_INTERVAL = 4
+    SELF_STYLE_PROB = 0.8
     EVAL_INTERVAL = 250
     
     # Device
